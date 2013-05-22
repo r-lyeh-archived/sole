@@ -52,6 +52,147 @@
  */
 
 //////////////////////////////////////////////////////////////////////////////////////
+// UUID v1 headers mostly
+
+#include <memory.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
+
+#include <cstring>
+
+#include <iomanip>
+#include <iostream>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#if   defined(_WIN32) || defined(_WIN64)
+#   include <windows.h>
+#   include <iphlpapi.h>
+#   pragma comment(lib,"iphlpapi.lib")
+#   define $windows $yes
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || \
+        defined(__OpenBSD__) || defined(__MINT__) || defined(__bsdi__)
+#   include <sys/types.h>
+#   include <sys/socket.h>
+#   include <ifaddrs.h>
+#   include <net/if_dl.h>
+#   define $bsd $yes
+#elif defined(__linux__)
+#   include <sys/ioctl.h>
+#   include <sys/socket.h>
+#   include <netinet/in.h>
+#   include <net/if.h>
+#   include <arpa/inet.h>
+#   include <unistd.h>
+#   define $linux $yes
+#else //elif defined(__unix__)
+#   if defined(__VMS)
+#      include <ioctl.h>
+#      include <inet.h>
+#   else
+#      include <sys/ioctl.h>
+#      include <arpa/inet.h>
+#   endif
+#   if defined(sun) || defined(__sun)
+#      include <sys/sockio.h>
+#   endif
+#   include <sys/socket.h>
+#   include <sys/types.h>
+#   include <netinet/in.h>
+#   include <net/if.h>
+#   include <netdb.h>
+#   include <net/if.h>
+#   include <net/if_arp.h>
+#   include <unistd.h>
+#   define $unix $yes
+#endif
+
+#if defined($windows) || defined($linux) || defined($linux) || defined($unix)
+#   define $undefined $no
+#else
+#   define $undefined $yes
+#endif
+
+#ifndef $windows
+#define $windows $no
+#endif
+
+#ifndef $bsd
+#define $bsd $no
+#endif
+
+#ifndef $linux
+#define $linux $no
+#endif
+
+#ifndef $unix
+#define $unix $no
+#endif
+
+#define $yes(...) __VA_ARGS__
+#define $no(...)
+
+////////////////////////////////////////////////////////////////////////////////////
+
+#include "sole.hpp"
+
+bool sole::uuid::operator==( const sole::uuid &other ) const {
+    return aa == other.aa && bb == other.bb;
+}
+bool sole::uuid::operator!=( const sole::uuid &other ) const {
+    return !operator==(other);
+}
+bool sole::uuid::operator<( const sole::uuid &other ) const {
+    if( aa < other.aa ) return true;
+    if( aa > other.aa ) return false;
+    if( bb < other.bb ) return true;
+    return false;
+}
+
+std::string sole::uuid::str() const {
+    std::stringstream ss;
+    ss << std::hex << std::nouppercase << std::setfill('0');
+
+    ss << std::setw(8) << (a) << '-';
+    ss << std::setw(4) << (b >> 16) << '-';
+    ss << std::setw(4) << (b & 0xFFFF) << '-';
+    ss << std::setw(4) << (c >> 16 ) << '-';
+    ss << std::setw(4) << (c & 0xFFFF);
+    ss << std::setw(8) << (d);
+
+    return ss.str();
+}
+
+std::ostream &operator<<( std::ostream &os, const sole::uuid &u ) {
+    return os << u.str(), os;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+// UUID v4 impl
+
+namespace sole {
+
+uuid uuid4() {
+
+    static std::random_device rd; //default_random_engine rd;
+    static std::uniform_int_distribution<uint32_t> dist(0, (uint32_t)(~0));
+
+    uuid my;
+
+    my.a =  dist(rd);
+    my.d =  dist(rd);
+    my.b = (dist(rd) & 0xFFFF0FFF) | 0x4000;
+    my.c = (dist(rd) & 0x3FFFFFFF) | 0x80000000;
+
+    return my;
+}
+
+} // ::sole
+
+//////////////////////////////////////////////////////////////////////////////////////
 // UUID v1 / multiplatform gettimeofday()
 
 #include <time.h>
@@ -127,187 +268,34 @@ int clock_gettime(int /*clk_id*/, struct timespec* t) {
 #   define CLOCK_REALTIME 0
 #endif
 
-//////////////////////////////////////////////////////////////////////////////////////
-// UUID v1 headers mostly
-
-#include <memory.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <time.h>
-
-#include <cstring>
-
-#include <iomanip>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#if   defined(_WIN32) || defined(_WIN64)
-#   include <windows.h>
-#   include <iphlpapi.h>
-#   pragma comment(lib,"iphlpapi.lib")
-#   define $windows $yes
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || \
-        defined(__OpenBSD__) || defined(__MINT__) || defined(__bsdi__)
-#   include <sys/types.h>
-#   include <sys/socket.h>
-#   include <ifaddrs.h>
-#   include <net/if_dl.h>
-#   define $bsd $yes
-#elif defined(__linux__)
-#   include <sys/ioctl.h>
-#   include <sys/socket.h>
-#   include <netinet/in.h>
-#   include <net/if.h>
-#   include <arpa/inet.h>
-#   include <unistd.h>
-#   define $linux $yes
-#else //elif defined(__unix__)
-#   if defined(__VMS)
-#      include <ioctl.h>
-#      include <inet.h>
-#   else
-#      include <sys/ioctl.h>
-#      include <arpa/inet.h>
-#   endif
-#   if defined(sun) || defined(__sun)
-#      include <sys/sockio.h>
-#   endif
-#   include <sys/socket.h>
-#   include <sys/types.h>
-#   include <netinet/in.h>
-#   include <net/if.h>
-#   include <netdb.h>
-#   include <net/if.h>
-#   include <net/if_arp.h>
-#   include <unistd.h>
-#   define $unix $yes
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////
-
-#include "sole.hpp"
-
-bool sole::uuid::operator==( const sole::uuid &other ) const {
-    return aa == other.aa && bb == other.bb;
-}
-bool sole::uuid::operator!=( const sole::uuid &other ) const {
-    return !operator==(other);
-}
-bool sole::uuid::operator<( const sole::uuid &other ) const {
-    if( aa < other.aa ) return true;
-    if( aa > other.aa ) return false;
-    if( bb < other.bb ) return true;
-    return false;
-}
-
-std::string sole::uuid::str() const {
-    std::stringstream ss;
-    ss << std::hex << std::nouppercase << std::setfill('0');
-
-    ss << std::setw(8) << (a) << '-';
-    ss << std::setw(4) << (b >> 16) << '-';
-    ss << std::setw(4) << (b & 0xFFFF) << '-';
-    ss << std::setw(4) << (c >> 16 ) << '-';
-    ss << std::setw(4) << (c & 0xFFFF);
-    ss << std::setw(8) << (d);
-
-    return ss.str();
-}
-
-std::ostream &operator<<( std::ostream &os, const sole::uuid &u ) {
-    return os << u.str(), os;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////
-// UUID v4 impl
-
-namespace sole {
-
-uuid uuid4() {
-
-    static std::random_device rd; //default_random_engine rd;
-    static std::uniform_int_distribution<uint32_t> dist(0, (uint32_t)(~0));
-
-    uuid my;
-
-    my.b = (dist(rd) & 0xFFFF0FFF) | 0x4000;
-    my.d =  dist(rd);
-    my.a =  dist(rd);
-
-    do
-    my.c = dist(rd);
-    while( my.c < 0x80000000 || my.c > 0xb0000000 );
-
-    return my;
-}
-
-} // ::sole
-
-//////////////////////////////////////////////////////////////////////////////////////
-// UUID v1 impl
-
-#if defined($windows) || defined($linux) || defined($linux) || defined($unix)
-#   define $undefined $no
-#else
-#   define $undefined $yes
-#endif
-
-#ifndef $windows
-#define $windows $no
-#endif
-
-#ifndef $bsd
-#define $bsd $no
-#endif
-
-#ifndef $linux
-#define $linux $no
-#endif
-
-#ifndef $unix
-#define $unix $no
-#endif
-
-#define $yes(...) __VA_ARGS__
-#define $no(...)
-
 namespace {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constants
 // Number of 100-ns intervals between the UUID epoch 1582-10-15 00:00:00 and
-// the Unix epoch 1970-01-01 00:00:00. Ref: uuid.py
+// the Unix epoch 1970-01-01 00:00:00. [ref] uuid.py
 static const uint64_t kNum_100nsec_1582_1970 = 0x01b21dd213814000;
 static const uint64_t kMax_node = 0xffffffffffff; // 48-bits, all 1s.
-static const uint16_t kMax_clock_seq = 0x3fff; // 14-bits, all 1s.
+static const uint16_t kMax_clock_seq = 0x3fff;    // 14-bits, all 1s.
 
-////////////////////////////////////////////////////////////////////////////////
-// Convenience functions.
 // Returns number of 100ns intervals since 00:00:00.00 15 October 1582.
 uint64_t gettime()
 {
-    static uint64_t last_uuid_time = 0; // On the heap!
-    int rc = 0;
-    uint64_t uuid_time = 0;
     struct timespec tp;
-
-    rc = clock_gettime(CLOCK_REALTIME, &tp);
+    clock_gettime(CLOCK_REALTIME, &tp);
 
     // Convert to 100-nanosecond intervals
+    uint64_t uuid_time;
     uuid_time = tp.tv_sec * 10000000;
     uuid_time = uuid_time + (tp.tv_nsec / 100);
     uuid_time = uuid_time + kNum_100nsec_1582_1970;
 
     // If the clock looks like it went backwards, or is the same, increment it.
-
-    if (last_uuid_time <= uuid_time) {
-        last_uuid_time = ++uuid_time;
-    } else {
+    static uint64_t last_uuid_time = 0;
+    if( last_uuid_time > uuid_time )
         last_uuid_time = uuid_time;
-    }
+    else
+        last_uuid_time = ++uuid_time;
 
     return uuid_time;
 }

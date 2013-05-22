@@ -16,7 +16,7 @@ some theory
 
 public API
 ----------
-- `sole::uuid` 128-bit UUID base type. Allows comparison and sorting. Use `str()` method for pretty printing.
+- `sole::uuid` 128-bit UUID base type that is `std::ostream` friendly and allows comparison and sorting. Use `str()` method for pretty printing.
 - `sole::uuid1()` creates an UUID v1.
 - `sole::uuid4()` creates an UUID v4.
 
@@ -46,4 +46,4 @@ D:\prj\sole>
 
 special notes
 -------------
-- g++ users: both `-std=c++11` and `-lpthread` may be required when compiling `sole.cpp`
+- g++ users: both `-std=c++11` and `-lrt` may be required when compiling `sole.cpp`
