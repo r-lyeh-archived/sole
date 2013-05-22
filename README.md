@@ -12,11 +12,11 @@ some theory
 - UUID version 1 (48-bit MAC address + 60-bit clock with a resolution of 100 ns)
 - UUID Version 4 (122-bits of randomness)
 - Use v1 if you are worried about leaving it up to probabilities.
-- Use v4 if you are worried about security issues.
+- Use v4 if you are worried about security issues and determinism.
 
 public API
 ----------
-- `sole::uuid` 128-bit UUID base type that is `std::ostream` friendly and allows comparison and sorting. Use `str()` method for pretty printing.
+- `sole::uuid` 128-bit UUID base type that allows comparison and sorting. `std::ostream` friendly.
 - `sole::uuid1()` creates an UUID v1.
 - `sole::uuid4()` creates an UUID v4.
 
