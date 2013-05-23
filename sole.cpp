@@ -37,10 +37,10 @@
  *   type of person worried about the earth getting destroyed by a large asteroid in your
  *   lifetime). Just use a v1 and it is guaranteed to be unique till 3603 AD.
  *
- * - Use v4 if you are worried about security issues. That is because v1 UUIDs reveal the
- *   MAC address of the machine it was generated on and they can be predictable.
- *   Use v4 if you need more than 10 million uuids per second, or if your application wants
- *   to live past 3603 A.D.
+ * - Use v4 if you are worried about security issues and determinism. That is because
+ *   v1 UUIDs reveal the MAC address of the machine it was generated on and they can be
+ *   predictable. Use v4 if you need more than 10 million uuids per second, or if your
+ *   application wants to live past 3603 A.D.
 
  * References:
  * - [1] http://stackoverflow.com/questions/1155008/how-unique-is-uuid
@@ -68,24 +68,26 @@
 #include <string>
 #include <vector>
 
-#if   defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 #   include <windows.h>
 #   include <iphlpapi.h>
 #   pragma comment(lib,"iphlpapi.lib")
 #   define $windows $yes
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || \
         defined(__OpenBSD__) || defined(__MINT__) || defined(__bsdi__)
-#   include <sys/types.h>
-#   include <sys/socket.h>
 #   include <ifaddrs.h>
 #   include <net/if_dl.h>
+#   include <sys/socket.h>
+#   include <sys/time.h>
+#   include <sys/types.h>
 #   define $bsd $yes
 #elif defined(__linux__)
+#   include <arpa/inet.h>
+#   include <net/if.h>
+#   include <netinet/in.h>
 #   include <sys/ioctl.h>
 #   include <sys/socket.h>
-#   include <netinet/in.h>
-#   include <net/if.h>
-#   include <arpa/inet.h>
+#   include <sys/time.h>
 #   include <unistd.h>
 #   define $linux $yes
 #else //elif defined(__unix__)
@@ -99,56 +101,65 @@
 #   if defined(sun) || defined(__sun)
 #      include <sys/sockio.h>
 #   endif
-#   include <sys/socket.h>
-#   include <sys/types.h>
-#   include <netinet/in.h>
-#   include <net/if.h>
-#   include <netdb.h>
 #   include <net/if.h>
 #   include <net/if_arp.h>
+#   include <netdb.h>
+#   include <netinet/in.h>
+#   include <sys/socket.h>
+#   include <sys/time.h>
+#   include <sys/types.h>
 #   include <unistd.h>
+#   if defined(__VMS)
+        namespace { enum { MAXHOSTNAMELEN = 64 }; }
+#   endif
 #   define $unix $yes
 #endif
-
-#if defined($windows) || defined($linux) || defined($linux) || defined($unix)
-#   define $undefined $no
-#else
-#   define $undefined $yes
-#endif
-
-#ifndef $windows
-#define $windows $no
-#endif
-
-#ifndef $bsd
-#define $bsd $no
-#endif
-
-#ifndef $linux
-#define $linux $no
-#endif
-
-#ifndef $unix
-#define $unix $no
-#endif
-
-#define $yes(...) __VA_ARGS__
-#define $no(...)
 
 ////////////////////////////////////////////////////////////////////////////////////
 
 #include "sole.hpp"
 
+#ifdef  $windows
+#define $welse   $no
+#else
+#define $windows $no
+#define $welse   $yes
+#endif
+
+#ifdef  $bsd
+#define $belse   $no
+#else
+#define $bsd     $no
+#define $belse   $yes
+#endif
+
+#ifdef  $linux
+#define $lelse   $no
+#else
+#define $linux   $no
+#define $lelse   $yes
+#endif
+
+#ifdef  $unix
+#define $uelse   $no
+#else
+#define $unix    $no
+#define $uelse   $yes
+#endif
+
+#define $yes(...) __VA_ARGS__
+#define $no(...)
+
 bool sole::uuid::operator==( const sole::uuid &other ) const {
-    return aa == other.aa && bb == other.bb;
+    return ab == other.ab && cd == other.cd;
 }
 bool sole::uuid::operator!=( const sole::uuid &other ) const {
     return !operator==(other);
 }
 bool sole::uuid::operator<( const sole::uuid &other ) const {
-    if( aa < other.aa ) return true;
-    if( aa > other.aa ) return false;
-    if( bb < other.bb ) return true;
+    if( ab < other.ab ) return true;
+    if( ab > other.ab ) return false;
+    if( cd < other.cd ) return true;
     return false;
 }
 
@@ -156,12 +167,17 @@ std::string sole::uuid::str() const {
     std::stringstream ss;
     ss << std::hex << std::nouppercase << std::setfill('0');
 
+    uint32_t a = (ab >> 32);
+    uint32_t b = (ab & 0xFFFFFFFF);
+    uint32_t c = (cd >> 32);
+    uint32_t d = (cd & 0xFFFFFFFF);
+
     ss << std::setw(8) << (a) << '-';
     ss << std::setw(4) << (b >> 16) << '-';
     ss << std::setw(4) << (b & 0xFFFF) << '-';
     ss << std::setw(4) << (c >> 16 ) << '-';
     ss << std::setw(4) << (c & 0xFFFF);
-    ss << std::setw(8) << (d);
+    ss << std::setw(8) << d;
 
     return ss.str();
 }
@@ -177,15 +193,16 @@ namespace sole {
 
 uuid uuid4() {
 
-    static std::random_device rd; //default_random_engine rd;
-    static std::uniform_int_distribution<uint32_t> dist(0, (uint32_t)(~0));
+    std::random_device rd;
+    std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
     uuid my;
 
-    my.a =  dist(rd);
-    my.d =  dist(rd);
-    my.b = (dist(rd) & 0xFFFF0FFF) | 0x4000;
-    my.c = (dist(rd) & 0x3FFFFFFF) | 0x80000000;
+    my.ab = dist(rd);
+    my.cd = dist(rd);
+
+    my.ab = (my.ab & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
+    my.cd = (my.cd & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
     return my;
 }
@@ -195,100 +212,72 @@ uuid uuid4() {
 //////////////////////////////////////////////////////////////////////////////////////
 // UUID v1 / multiplatform gettimeofday()
 
-#include <time.h>
-#ifdef _WIN32
-#   include <windows.h>
-#else
-#   include <sys/time.h> // __MACH__, __linux__
-#endif
-#ifdef _WIN32
+namespace {
+$windows(
     struct timespec {
         unsigned tv_sec;
         unsigned tv_nsec;
     };
-#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
-  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
-#else
-  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
-#endif
-    struct timezone
-    {
-      int  tz_minuteswest; /* minutes W of Greenwich */
-      int  tz_dsttime;     /* type of dst correction */
+    struct timezone {
+        int  tz_minuteswest; /* minutes W of Greenwich */
+        int  tz_dsttime;     /* type of dst correction */
     };
+    int gettimeofday( struct timeval *tv, struct timezone *tz ) {
+        FILETIME ft;
+        uint64_t tmpres = 0;
 
-    int gettimeofday(struct timeval *tv, struct timezone *tz)
-    {
-      FILETIME ft;
-      unsigned __int64 tmpres = 0;
-      static int tzflag;
+        if( NULL != tv ) {
+            GetSystemTimeAsFileTime(&ft);
 
-      if (NULL != tv)
-      {
-        GetSystemTimeAsFileTime(&ft);
+            tmpres |= ft.dwHighDateTime;
+            tmpres <<= 32;
+            tmpres |= ft.dwLowDateTime;
 
-        tmpres |= ft.dwHighDateTime;
-        tmpres <<= 32;
-        tmpres |= ft.dwLowDateTime;
-
-        /*converting file time to unix epoch*/
-        tmpres -= DELTA_EPOCH_IN_MICROSECS;
-        tmpres /= 10;  /*convert into microseconds*/
-        tv->tv_sec = (long)(tmpres / 1000000UL);
-        tv->tv_usec = (long)(tmpres % 1000000UL);
-      }
-
-      if (NULL != tz)
-      {
-        if (!tzflag)
-        {
-          _tzset();
-          tzflag++;
+            /*converting file time to unix epoch*/
+            tmpres -= 11644473600000000ULL; //DELTA_EPOCH_IN_MICROSECS;
+            tmpres /= 10;  /*convert into microseconds*/
+            tv->tv_sec = (long)(tmpres / 1000000UL);
+            tv->tv_usec = (long)(tmpres % 1000000UL);
         }
-        tz->tz_minuteswest = _timezone / 60;
-        tz->tz_dsttime = _daylight;
-      }
 
-      return 0;
+        if( NULL != tz ) {
+            static bool once = true;
+            if( once ) {
+                once = false;
+                _tzset();
+            }
+            tz->tz_minuteswest = _timezone / 60;
+            tz->tz_dsttime = _daylight;
+        }
+
+        return 0;
     }
-#endif
-#ifndef __linux__
-// valid for apple/win32
-//clock_gettime is not implemented on OSX
-int clock_gettime(int /*clk_id*/, struct timespec* t) {
-    struct timeval now;
-    int rv = gettimeofday(&now, NULL);
-    if (rv) return rv;
-    t->tv_sec  = now.tv_sec;
-    t->tv_nsec = now.tv_usec * 1000;
-    return 0;
+)
+$lelse( $belse( // if not linux, if not bsd... valid for apple/win32
+    int clock_gettime( int /*clk_id*/, struct timespec* t ) {
+        struct timeval now;
+        int rv = gettimeofday(&now, NULL);
+        if( rv ) return rv;
+        t->tv_sec  = now.tv_sec;
+        t->tv_nsec = now.tv_usec * 1000;
+        return 0;
+    }
+))
 }
-#endif
-#ifndef CLOCK_REALTIME
-#   define CLOCK_REALTIME 0
-#endif
 
 namespace {
-
-////////////////////////////////////////////////////////////////////////////////
-// Constants
-// Number of 100-ns intervals between the UUID epoch 1582-10-15 00:00:00 and
-// the Unix epoch 1970-01-01 00:00:00. [ref] uuid.py
-static const uint64_t kNum_100nsec_1582_1970 = 0x01b21dd213814000;
-static const uint64_t kMax_node = 0xffffffffffff; // 48-bits, all 1s.
-static const uint16_t kMax_clock_seq = 0x3fff;    // 14-bits, all 1s.
 
 // Returns number of 100ns intervals since 00:00:00.00 15 October 1582.
 uint64_t gettime()
 {
     struct timespec tp;
-    clock_gettime(CLOCK_REALTIME, &tp);
+    clock_gettime(0 /*CLOCK_REALTIME*/, &tp);
 
     // Convert to 100-nanosecond intervals
     uint64_t uuid_time;
     uuid_time = tp.tv_sec * 10000000;
     uuid_time = uuid_time + (tp.tv_nsec / 100);
-    uuid_time = uuid_time + kNum_100nsec_1582_1970;
+    uuid_time = uuid_time + 0x01b21dd213814000ULL; // [ref] uuid.py: 100ns intervals from 1582 to 1970
 
     // If the clock looks like it went backwards, or is the same, increment it.
     static uint64_t last_uuid_time = 0;
@@ -303,10 +292,6 @@ uint64_t gettime()
 // Looks for first MAC address of any network device, any size.
 bool get_any_mac( std::vector<unsigned char> &_node )
 {
-#if defined(__VMS)
-    enum { MAXHOSTNAMELEN = 64 };
-#endif
-
 $windows({
     PIP_ADAPTER_INFO pAdapterInfo;
     PIP_ADAPTER_INFO pAdapter = 0;
@@ -423,17 +408,17 @@ $unix({
 })
 }
 
-// Looks for first MAC address of any network device, size truncated to 64bits.
-uint64_t get_any_mac64() {
+// Looks for first MAC address of any network device, size truncated to 48bits.
+uint64_t get_any_mac48() {
     std::vector<unsigned char> node;
     if( !get_any_mac(node) )
         return 0;
-    uint64_t t;
+    node.resize(6);
     std::stringstream ss;
-    unsigned bytes = node.size();
-    if( bytes > 8 ) bytes = 8;
-    for( unsigned i = 0; i < bytes; ++i )
-        ss << int(node[i]);
+    ss << std::hex << std::setfill('0');
+    for( unsigned i = 0; i < 6; ++i )
+        ss << std::setw(2) << int(node[i]);
+    uint64_t t;
     if( ss >> t )
         return t;
     return 0;
@@ -445,20 +430,8 @@ namespace sole {
 
 uuid uuid1()
 {
-    uint64_t mac = get_any_mac64();
-    uint16_t clock_seq = (uint16_t)( gettime() & kMax_clock_seq );
-
-    // Validate node and clock_seq.
-
-    if (mac > kMax_node) {
-        mac = kMax_node;
-        //return "NodeOutOfRangeException";
-    }
-
-    if (clock_seq > kMax_clock_seq) {
-        clock_seq = kMax_clock_seq;
-        //return "ClockSeqOutOfRangeException";
-    }
+    uint64_t mac = get_any_mac48();                         // 48-bits max
+    uint16_t clock_seq = (uint16_t)( gettime() & 0x3fff );  // 14-bits max
 
     // Number of 100-ns intervals?
     uint64_t ns100_intervals = gettime();
@@ -470,8 +443,8 @@ uuid uuid1()
     uint8_t clock_seq_hi_variant = (clock_seq >> 8) & 0x3f;
 
     uuid u;
-    uint64_t &lower_ = u.aa;
-    uint64_t &upper_ = u.bb;
+    uint64_t &upper_ = u.ab;
+    uint64_t &lower_ = u.cd;
 
     // Build the high 4 bytes.
     upper_  = (uint64_t) time_low << 32;
@@ -496,10 +469,13 @@ uuid uuid1()
 
 } // ::sole
 
-#undef $no
-#undef $yes
-#undef $unix
-#undef $linux
 #undef $bsd
+#undef $belse
+#undef $linux
+#undef $lelse
+#undef $unix
+#undef $uelse
 #undef $windows
-#undef $undefined
+#undef $welse
+#undef $yes
+#undef $no

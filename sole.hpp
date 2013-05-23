@@ -8,10 +8,9 @@ namespace sole
 {
     // 128-bit basic UUID type that allows comparison and sorting.
     // Use .str() for pretty printing.
-    union uuid
+    struct uuid
     {
-        struct { uint64_t   aa,bb; };
-        struct { uint32_t a,b,c,d; };
+        uint64_t ab, cd;
 
         bool operator==( const uuid &other ) const;
         bool operator!=( const uuid &other ) const;
