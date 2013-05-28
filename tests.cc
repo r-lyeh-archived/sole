@@ -54,11 +54,13 @@ namespace run
 
 int main()
 {
+    run::benchmark(uuid0);
     run::benchmark(uuid1);
     run::benchmark(uuid4);
 
-    run::tests(uuid4);
+//  run::tests(uuid0);              //  not applicable
 //  run::tests(uuid1);              //  not applicable
+    run::tests(uuid4);
 
     return 0;
 }

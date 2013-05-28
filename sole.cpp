@@ -1,5 +1,5 @@
 /* Sole is a lightweight C++11 library to generate universally unique identificators.
- * Sole provides interface for UUID versions 1 and 4.
+ * Sole provides interface for UUID versions 1 and 4. Custom v0 is provided additionally.
  * Copyright (c) 2013, Mario 'rlyeh' Rodriguez
 
  * Based on code by Dmitri Bouianov, Philip O'Toole, Poco C++ libraries and
@@ -24,7 +24,7 @@
  * THE SOFTWARE.
 
  * Theory: (see Hoylen's answer at [1])
- * - UUID version 1 (48-bit MAC address + 60-bit clock with a resolution of 100 ns)
+ * - UUID version 1 (48-bit MAC address + 60-bit clock with a resolution of 100ns)
  *   Clock wraps in 3603 A.D.
  *   Up to 10000000 UUIDs per second.
  *   MAC address revealed.
@@ -41,6 +41,13 @@
  *   v1 UUIDs reveal the MAC address of the machine it was generated on and they can be
  *   predictable. Use v4 if you need more than 10 million uuids per second, or if your
  *   application wants to live past 3603 A.D.
+
+ * Additionally a custom UUID v0 is provided:
+ * - 16-bit PID + 48-bit MAC address + 60-bit clock with a resolution of 100ns since Unix epoch
+ * - Format is EPOCH_LOW-EPOCH_MID-VERSION(0)|EPOCH_HI-PID-MAC
+ * - Clock wraps in 3991 A.D.
+ * - Up to 10000000 UUIDs per second.
+ * - MAC address and PID revealed.
 
  * References:
  * - [1] http://stackoverflow.com/questions/1155008/how-unique-is-uuid
@@ -70,6 +77,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #   include <windows.h>
+#   include <process.h>
 #   include <iphlpapi.h>
 #   pragma comment(lib,"iphlpapi.lib")
 #   define $windows $yes
@@ -215,8 +223,8 @@ uuid uuid4() {
 namespace {
 $windows(
     struct timespec {
-        unsigned tv_sec;
-        unsigned tv_nsec;
+        uint64_t tv_sec;
+        uint64_t tv_nsec;
     };
     struct timezone {
         int  tz_minuteswest; /* minutes W of Greenwich */
@@ -229,15 +237,24 @@ $windows(
         if( NULL != tv ) {
             GetSystemTimeAsFileTime(&ft);
 
+            // The GetSystemTimeAsFileTime returns the number of 100 nanosecond
+            // intervals since Jan 1, 1601 in a structure. Copy the high bits to
+            // the 64 bit tmpres, shift it left by 32 then or in the low 32 bits.
             tmpres |= ft.dwHighDateTime;
             tmpres <<= 32;
             tmpres |= ft.dwLowDateTime;
 
-            /*converting file time to unix epoch*/
-            tmpres -= 11644473600000000ULL; //DELTA_EPOCH_IN_MICROSECS;
-            tmpres /= 10;  /*convert into microseconds*/
-            tv->tv_sec = (long)(tmpres / 1000000UL);
-            tv->tv_usec = (long)(tmpres % 1000000UL);
+            // Convert to microseconds by dividing by 10
+            tmpres /= 10;
+
+            // The Unix epoch starts on Jan 1 1970.  Need to subtract the difference
+            // in seconds from Jan 1 1601.
+            tmpres -= 11644473600000000ULL;
+
+            // Finally change microseconds to seconds and place in the seconds value.
+            // The modulus picks up the microseconds.
+            tv->tv_sec = (tmpres / 1000000UL);
+            tv->tv_usec = (tmpres % 1000000UL);
         }
 
         if( NULL != tz ) {
@@ -267,8 +284,8 @@ $lelse( $belse( // if not linux, if not bsd... valid for apple/win32
 
 namespace {
 
-// Returns number of 100ns intervals since 00:00:00.00 15 October 1582.
-uint64_t gettime()
+// Returns number of 100ns intervals
+uint64_t gettime( uint64_t offset )
 {
     struct timespec tp;
     clock_gettime(0 /*CLOCK_REALTIME*/, &tp);
@@ -277,7 +294,7 @@ uint64_t gettime()
     uint64_t uuid_time;
     uuid_time = tp.tv_sec * 10000000;
     uuid_time = uuid_time + (tp.tv_nsec / 100);
-    uuid_time = uuid_time + 0x01b21dd213814000ULL; // [ref] uuid.py: 100ns intervals from 1582 to 1970
+    uuid_time = uuid_time + offset;
 
     // If the clock looks like it went backwards, or is the same, increment it.
     static uint64_t last_uuid_time = 0;
@@ -430,11 +447,10 @@ namespace sole {
 
 uuid uuid1()
 {
-    uint64_t mac = get_any_mac48();                         // 48-bits max
-    uint16_t clock_seq = (uint16_t)( gettime() & 0x3fff );  // 14-bits max
-
-    // Number of 100-ns intervals?
-    uint64_t ns100_intervals = gettime();
+    // Number of 100-ns intervals since 00:00:00.00 15 October 1582; [ref] uuid.py
+    uint64_t ns100_intervals = gettime( 0x01b21dd213814000ULL );
+    uint16_t clock_seq = (uint16_t)( ns100_intervals & 0x3fff );  // 14-bits max
+    uint64_t mac = get_any_mac48();                               // 48-bits max
 
     uint32_t time_low = ns100_intervals & 0xffffffff;
     uint16_t time_mid = (ns100_intervals >> 32) & 0xffff;
@@ -446,12 +462,12 @@ uuid uuid1()
     uint64_t &upper_ = u.ab;
     uint64_t &lower_ = u.cd;
 
-    // Build the high 4 bytes.
+    // Build the high 32 bytes
     upper_  = (uint64_t) time_low << 32;
     upper_ |= (uint64_t) time_mid << 16;
     upper_ |= (uint64_t) time_hi_version;
 
-    // Build the low 4 bytes, using the clock sequence number.
+    // Build the low 32 bytes, using the clock sequence number
     lower_  = (uint64_t) ((clock_seq_hi_variant << 8) | clock_seq_low) << 48;
     lower_ |= mac;
 
@@ -461,6 +477,41 @@ uuid uuid1()
 
     // Set the version number.
     enum { version = 1 };
+    upper_ &= ~0xf000;
+    upper_ |= version << 12;
+
+    return u;
+}
+
+uuid uuid0()
+{
+    // Number of 100-ns intervals since Unix epoch time
+    uint64_t ns100_intervals = gettime( 0 );
+    uint64_t pid = $windows( _getpid() ) $welse( getpid() );
+    uint16_t pid16 = (uint16_t)( pid & 0xffff ); // 16-bits max
+    uint64_t mac = get_any_mac48();              // 48-bits max
+
+    uint32_t time_low = ns100_intervals & 0xffffffff;
+    uint16_t time_mid = (ns100_intervals >> 32) & 0xffff;
+    uint16_t time_hi_version = (ns100_intervals >> 48) & 0xfff;
+    uint8_t pid_low = pid16 & 0xff;
+    uint8_t pid_hi = (pid16 >> 8) & 0xff;
+
+    uuid u;
+    uint64_t &upper_ = u.ab;
+    uint64_t &lower_ = u.cd;
+
+    // Build the high 32 bytes.
+    upper_  = (uint64_t) time_low << 32;
+    upper_ |= (uint64_t) time_mid << 16;
+    upper_ |= (uint64_t) time_hi_version;
+
+    // Build the low 32 bytes, using the mac and pid number.
+    lower_  = (uint64_t) ((pid_hi << 8) | pid_low) << 48;
+    lower_ |= mac;
+
+    // Set the version number.
+    enum { version = 0 };
     upper_ &= ~0xf000;
     upper_ |= version << 12;
 

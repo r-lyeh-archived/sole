@@ -20,6 +20,7 @@ namespace sole
     };
 
     // Generators
+    uuid uuid0(); // UUID v0, pro: unique; cons: MAC revealed, pid revealed, predictable.
     uuid uuid1(); // UUID v1, pro: unique; cons: MAC revealed, predictable.
     uuid uuid4(); // UUID v4, pros: anonymous, fast; con: uuids "can clash"
 }

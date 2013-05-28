@@ -8,6 +8,7 @@ int main()
 {
     using namespace sole;
 
+    std::cout << "uuid v0 sample: " << uuid0() << std::endl;
     std::cout << "uuid v1 sample: " << uuid1() << std::endl;
     std::cout << "uuid v4 sample: " << uuid4() << std::endl;
 
