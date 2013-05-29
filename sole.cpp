@@ -54,6 +54,7 @@
  * - [2] http://en.wikipedia.org/wiki/UUID#Random%5FUUID%5Fprobability%5Fof%5Fduplicates
  * - http://en.wikipedia.org/wiki/Universally_unique_identifier
  * - http://en.cppreference.com/w/cpp/numeric/random/random_device
+ * - http://www.itu.int/ITU-T/asn1/uuid.html f81d4fae-7dec-11d0-a765-00a0c91e6bf6
 
  * - rlyeh ~~ listening to Hedon Cries / Until The Sun Goes up
  */
@@ -67,6 +68,7 @@
 #include <time.h>
 
 #include <cstring>
+#include <ctime>
 
 #include <iomanip>
 #include <iostream>
@@ -74,6 +76,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
 
 #if defined(_WIN32) || defined(_WIN64)
 #   include <windows.h>
@@ -170,6 +173,61 @@ bool sole::uuid::operator<( const sole::uuid &other ) const {
     if( cd < other.cd ) return true;
     return false;
 }
+namespace {
+    std::string printftime( uint64_t timestamp_secs = 0, const std::string &locale = std::string() ) {
+        std::string timef;
+        try {
+            std::string locale; // = "es-ES", "Chinese_China.936", "en_US.UTF8", etc...
+            std::time_t t = timestamp_secs;
+                std::tm tm = *std::localtime(&t);
+            std::stringstream ss;
+#if 1
+                ss.imbue( std::locale( locale.empty() ? std::locale("").name() : locale ) );
+                ss << std::put_time( &tm, "\"%c\"" );
+#else
+#   ifdef _MSC_VER
+                // msvc crashes on %z and %Z
+                ss << std::put_time( &tm, "\"%Y-%m-%d %H:%M:%S\"" );
+#   else
+                ss << std::put_time( &tm, "\"%Y-%m-%d %H:%M:%S %z\"" );
+#   endif
+#endif
+            timef = ss.str();
+        }
+        catch(...) {
+            timef = "\"\"";
+        }
+        return timef;
+    }
+}
+
+std::string sole::uuid::pretty() const {
+    std::stringstream ss;
+
+    uint64_t a = (ab >> 32);
+    uint64_t b = (ab & 0xFFFFFFFF);
+    uint64_t c = (cd >> 32);
+    uint64_t d = (cd & 0xFFFFFFFF);
+
+    int version = (b & 0xF000) >> 12;
+    uint64_t timestamp = ((b & 0x0FFF) << 48 ) | (( b >> 16 ) << 32) | a; // in 100ns units
+
+    ss << "version=" << (version) << ',';
+
+    if( version == 1 )
+        timestamp = timestamp - 0x01b21dd213814000ULL; // decrement Gregorian calendar
+
+    ss << std::hex << std::nouppercase << std::setfill('0');
+    version <= 1 && ss << "timestamp=" << printftime(timestamp/10000000) << ',';
+    version <= 1 && ss << "mac=" << std::setw(4) << (c & 0xFFFF) << std::setw(8) << d << ',';
+    version == 4 && ss << "randbits=" << std::setw(8) << (ab & 0xFFFFFFFFFFFF0FFFULL) << std::setw(8) << (cd & 0x3FFFFFFFFFFFFFFFULL) << ',';
+
+    ss << std::dec;
+    version == 0 && ss << "pid=" << std::setw(4) << (c >> 16 ) << ',';
+    version == 1 && ss << "clock_seq=" << std::setw(4) << ((c >> 16) & 0x3FFF) << ',';
+
+    return ss.str();
+}
 
 std::string sole::uuid::str() const {
     std::stringstream ss;
@@ -195,30 +253,7 @@ std::ostream &operator<<( std::ostream &os, const sole::uuid &u ) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
-// UUID v4 impl
-
-namespace sole {
-
-uuid uuid4() {
-
-    std::random_device rd;
-    std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
-
-    uuid my;
-
-    my.ab = dist(rd);
-    my.cd = dist(rd);
-
-    my.ab = (my.ab & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
-    my.cd = (my.cd & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
-
-    return my;
-}
-
-} // ::sole
-
-//////////////////////////////////////////////////////////////////////////////////////
-// UUID v1 / multiplatform gettimeofday()
+// multiplatform gettimeofday()
 
 namespace {
 $windows(
@@ -285,7 +320,7 @@ $lelse( $belse( // if not linux, if not bsd... valid for apple/win32
 namespace {
 
 // Returns number of 100ns intervals
-uint64_t gettime( uint64_t offset )
+uint64_t get_time( uint64_t offset )
 {
     struct timespec tp;
     clock_gettime(0 /*CLOCK_REALTIME*/, &tp);
@@ -445,10 +480,26 @@ uint64_t get_any_mac48() {
 
 namespace sole {
 
+uuid uuid4()
+{
+    std::random_device rd;
+    std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
+
+    uuid my;
+
+    my.ab = dist(rd);
+    my.cd = dist(rd);
+
+    my.ab = (my.ab & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
+    my.cd = (my.cd & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
+
+    return my;
+}
+
 uuid uuid1()
 {
     // Number of 100-ns intervals since 00:00:00.00 15 October 1582; [ref] uuid.py
-    uint64_t ns100_intervals = gettime( 0x01b21dd213814000ULL );
+    uint64_t ns100_intervals = get_time( 0x01b21dd213814000ULL );
     uint16_t clock_seq = (uint16_t)( ns100_intervals & 0x3fff );  // 14-bits max
     uint64_t mac = get_any_mac48();                               // 48-bits max
 
@@ -486,7 +537,7 @@ uuid uuid1()
 uuid uuid0()
 {
     // Number of 100-ns intervals since Unix epoch time
-    uint64_t ns100_intervals = gettime( 0 );
+    uint64_t ns100_intervals = get_time( 0 );
     uint64_t pid = $windows( _getpid() ) $welse( getpid() );
     uint16_t pid16 = (uint16_t)( pid & 0xffff ); // 16-bits max
     uint64_t mac = get_any_mac48();              // 48-bits max
@@ -515,6 +566,24 @@ uuid uuid0()
     upper_ &= ~0xf000;
     upper_ |= version << 12;
 
+    return u;
+}
+
+uuid rebuild( uint64_t ab, uint64_t cd ) {
+    uuid u = { ab, cd };
+    return u;
+}
+
+uuid rebuild( const std::string &uustr ) {
+    char sep;
+    uint64_t a,b,c,d,e;
+    uuid u = { 0, 0 };
+    std::stringstream ss;
+    ss << uustr;
+    if( ss >> std::hex >> a >> sep >> b >> sep >> c >> sep >> d >> sep >> e ) {
+        u.ab = (a << 32) | (b << 16) | c;
+        u.cd = (d << 48) | e;
+    }
     return u;
 }
 

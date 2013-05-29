@@ -6,11 +6,14 @@
 
 int main()
 {
-    using namespace sole;
+    sole::uuid u0 = sole::uuid0(), u1 = sole::uuid1(), u4 = sole::uuid4();
 
-    std::cout << "uuid v0 sample: " << uuid0() << std::endl;
-    std::cout << "uuid v1 sample: " << uuid1() << std::endl;
-    std::cout << "uuid v4 sample: " << uuid4() << std::endl;
+    std::cout << "uuid v0 sample : " << u0 << " -> " << u0.pretty() << std::endl;
+    std::cout << "uuid v1 sample : " << u1 << " -> " << u1.pretty() <<  std::endl;
+    std::cout << "uuid v4 sample : " << u4 << " -> " << u4.pretty() <<  std::endl;
+
+    u1 = sole::rebuild("F81D4FAE-7DEC-11D0-A765-00A0C91E6BF6");
+    std::cout << "uuid v1 rebuilt: " << u1 << " -> " << u1.pretty() <<  std::endl;
 
     return 0;
 }
