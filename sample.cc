@@ -15,5 +15,8 @@ int main()
     u1 = sole::rebuild("F81D4FAE-7DEC-11D0-A765-00A0C91E6BF6");
     std::cout << "uuid v1 rebuilt: " << u1 << " -> " << u1.pretty() <<  std::endl;
 
+    std::cout << sizeof(u1) * 8 << " bits" << std::endl;
+    std::cout << sizeof(sole::uuid) * 8 << " bits" << std::endl;
+
     return 0;
 }

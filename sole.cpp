@@ -60,7 +60,6 @@
  */
 
 //////////////////////////////////////////////////////////////////////////////////////
-// UUID v1 headers mostly
 
 #include <memory.h>
 #include <stdint.h>
@@ -76,7 +75,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
 
 #if defined(_WIN32) || defined(_WIN64)
 #   include <windows.h>
@@ -124,6 +122,19 @@
         namespace { enum { MAXHOSTNAMELEN = 64 }; }
 #   endif
 #   define $unix $yes
+#endif
+
+
+#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ < 40800 )
+    namespace std
+    {
+        static std::string put_time( const std::tm* tmb, const char* fmt ) {
+            std::string s( 128, '\0' );
+            while( !strftime( &s[0], s.size(), fmt, tmb ) )
+                s.resize( s.size() + 128 );
+            return s;
+        }
+    }
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -174,6 +185,7 @@ bool sole::uuid::operator<( const sole::uuid &other ) const {
     return false;
 }
 namespace {
+
     std::string printftime( uint64_t timestamp_secs = 0, const std::string &locale = std::string() ) {
         std::string timef;
         try {
@@ -182,7 +194,8 @@ namespace {
                 std::tm tm = *std::localtime(&t);
             std::stringstream ss;
 #if 1
-                ss.imbue( std::locale( locale.empty() ? std::locale("").name() : locale ) );
+                std::locale lc( locale.c_str() );
+                ss.imbue( lc );
                 ss << std::put_time( &tm, "\"%c\"" );
 #else
 #   ifdef _MSC_VER
@@ -253,7 +266,7 @@ std::ostream &operator<<( std::ostream &os, const sole::uuid &u ) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
-// multiplatform gettimeofday()
+// multiplatform clock_gettime()
 
 namespace {
 $windows(
@@ -316,6 +329,9 @@ $lelse( $belse( // if not linux, if not bsd... valid for apple/win32
     }
 ))
 }
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Timestamp and MAC interfaces
 
 namespace {
 
@@ -463,20 +479,23 @@ $unix({
 // Looks for first MAC address of any network device, size truncated to 48bits.
 uint64_t get_any_mac48() {
     std::vector<unsigned char> node;
-    if( !get_any_mac(node) )
-        return 0;
-    node.resize(6);
-    std::stringstream ss;
-    ss << std::hex << std::setfill('0');
-    for( unsigned i = 0; i < 6; ++i )
-        ss << std::setw(2) << int(node[i]);
-    uint64_t t;
-    if( ss >> t )
-        return t;
+    if( get_any_mac(node) ) {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0');
+        node.resize(6);
+        for( unsigned i = 0; i < 6; ++i )
+            ss << std::setw(2) << int(node[i]);
+        uint64_t t;
+        if( ss >> t )
+            return t;
+    }
     return 0;
 }
 
 } // namespace ::anon
+
+//////////////////////////////////////////////////////////////////////////////////////
+// UUID implementations
 
 namespace sole {
 
@@ -570,7 +589,8 @@ uuid uuid0()
 }
 
 uuid rebuild( uint64_t ab, uint64_t cd ) {
-    uuid u = { ab, cd };
+    uuid u;
+    u.ab = ab, u.cd = cd;
     return u;
 }
 
