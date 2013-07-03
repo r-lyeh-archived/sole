@@ -17,8 +17,8 @@ namespace run
     };
 
     template<typename FN>
-    void benchmark( const FN &fn ) {
-        std::cout << "Benchmarking... " << std::flush;
+    void benchmark( const FN &fn, const std::string &name ) {
+        std::cout << "Benchmarking " << name << "... " << std::flush;
 
         auto then = epoch();
 
@@ -33,12 +33,13 @@ namespace run
 
     template<typename FN>
     void tests( const FN &fn ) {
-        std::cout << "Testing... " << std::endl;
+        unsigned numtests = ~0;
+        std::cout << "Testing for " << numtests << " collisions... " << std::endl;
 
         auto then = epoch();
 
         std::set<uuid> all;
-        for( unsigned i = 0; i < (unsigned)(~0); ++i ) {
+        for( unsigned i = 0; i < numtests; ++i ) {
             auto now = epoch();
             if( now != then ) {
                 then = now;
@@ -50,16 +51,37 @@ namespace run
             all.insert( my_uuid );
         }
     }
+
+    template<typename FN>
+    void verify( const FN &fn ) {
+        std::cout << "Verifying serialization of 1 million UUIDs... " << std::flush;
+
+        for( unsigned i = 0; i < 1000000; ++i ) {
+            sole::uuid uuid = fn();
+            sole::uuid rebuilt1 = sole::rebuild( uuid.str() );
+            sole::uuid rebuilt2 = sole::rebuild( uuid.base62() );
+            assert( rebuilt1 == uuid && "error: rebuild() or .str() failed" );
+            assert( rebuilt2 == uuid && "error: rebuild() or .base62() failed" );
+        }
+
+        std::cout << "ok" << std::endl;
+    }
 }
 
 int main()
 {
-    run::benchmark(uuid0);
-    run::benchmark(uuid1);
-    run::benchmark(uuid4);
+    assert( sizeof(sole::uuid      )  * 8 == 128 );
+    assert( sizeof(sole::uuid0().ab)  * 8 ==  64 );
+    assert( sizeof(sole::uuid0().cd)  * 8 ==  64 );
 
-//  run::tests(uuid0);              //  not applicable
-//  run::tests(uuid1);              //  not applicable
+    run::benchmark(uuid0, "v0");
+    run::benchmark(uuid1, "v1");
+    run::benchmark(uuid4, "v4");
+
+    run::verify(uuid4);             // use fastest implementation
+
+//  run::tests(uuid0);              // not applicable
+//  run::tests(uuid1);              // not applicable
     run::tests(uuid4);
 
     return 0;

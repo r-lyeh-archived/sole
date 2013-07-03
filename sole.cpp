@@ -186,6 +186,34 @@ bool sole::uuid::operator<( const sole::uuid &other ) const {
 }
 namespace {
 
+    const std::string base62 =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    std::string rebase( uint64_t input, const std::string &basemap ) {
+        uint64_t rem, size = basemap.size();
+        std::string res;
+        do {
+            rem = input % size;
+            res = std::string() + basemap[int(rem)] + res;
+            input /= size;
+        } while (input > 0);
+        return res;
+    }
+
+    uint64_t rebase( const std::string &input, const std::string &basemap ) {
+        auto strpos = [](const std::string &chars, char ch ) -> unsigned {
+            return chars.find_first_of( ch );
+        };
+        unsigned limit = input.size();
+        unsigned size = basemap.size();
+        uint64_t res = strpos( basemap, input[0] );
+        for( unsigned i = 1; i < limit; ++i )
+            res = size * res + strpos( basemap, input[i] );
+        return res;
+    }
+
     std::string printftime( uint64_t timestamp_secs = 0, const std::string &locale = std::string() ) {
         std::string timef;
         try {
@@ -259,6 +287,10 @@ std::string sole::uuid::str() const {
     ss << std::setw(8) << d;
 
     return ss.str();
+}
+
+std::string sole::uuid::base62() const {
+    return rebase( ab, ::base62 ) + "-" + rebase( cd, ::base62 );
 }
 
 std::ostream &operator<<( std::ostream &os, const sole::uuid &u ) {
@@ -598,11 +630,21 @@ uuid rebuild( const std::string &uustr ) {
     char sep;
     uint64_t a,b,c,d,e;
     uuid u = { 0, 0 };
-    std::stringstream ss;
-    ss << uustr;
-    if( ss >> std::hex >> a >> sep >> b >> sep >> c >> sep >> d >> sep >> e ) {
-        u.ab = (a << 32) | (b << 16) | c;
-        u.cd = (d << 48) | e;
+    auto idx = uustr.find_first_of("-");
+    if( idx != std::string::npos ) {
+        // single separator, base62 notation
+        if( uustr.find_first_of("-",idx+1) == std::string::npos ) {
+            u.ab = rebase( uustr.substr(0,idx), ::base62 );
+            u.cd = rebase( uustr.substr(idx+1), ::base62 );
+        }
+        // else classic hex notation
+        else {
+            std::stringstream ss( uustr );
+            if( ss >> std::hex >> a >> sep >> b >> sep >> c >> sep >> d >> sep >> e ) {
+                u.ab = (a << 32) | (b << 16) | c;
+                u.cd = (d << 48) | e;
+            }
+        }
     }
     return u;
 }

@@ -10,28 +10,15 @@ namespace sole
     // Use .str() for printing and .pretty() for pretty printing.
     struct uuid
     {
-        union {
-            struct {
-                uint64_t low : 32;
-                uint64_t mid : 16;
-                uint64_t hiv : 16;
-            };
-            uint64_t ab;
-        };
-
-        union {
-            struct {
-                uint64_t seq : 16;
-                uint64_t mac : 48;
-            };
-            uint64_t cd;
-        };
+        uint64_t ab;
+        uint64_t cd;
 
         bool operator==( const uuid &other ) const;
         bool operator!=( const uuid &other ) const;
         bool operator <( const uuid &other ) const;
 
         std::string pretty() const;
+        std::string base62() const;
         std::string str() const;
     };
 
