@@ -70,7 +70,6 @@
 #include <ctime>
 
 #include <iomanip>
-#include <iostream>
 #include <random>
 #include <sstream>
 #include <string>
@@ -293,9 +292,6 @@ std::string sole::uuid::base62() const {
     return rebase( ab, ::base62 ) + "-" + rebase( cd, ::base62 );
 }
 
-std::ostream &operator<<( std::ostream &os, const sole::uuid &u ) {
-    return os << u.str(), os;
-}
 
 //////////////////////////////////////////////////////////////////////////////////////
 // multiplatform clock_gettime()
