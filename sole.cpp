@@ -218,20 +218,20 @@ namespace {
         try {
             std::string locale; // = "es-ES", "Chinese_China.936", "en_US.UTF8", etc...
             std::time_t t = timestamp_secs;
-                std::tm tm = *std::localtime(&t);
+            std::tm tm;
+            $windows(
+                localtime_s( &tm, &t );
+            )
+            $welse(
+                localtime_r( &t, &tm );
+            )
+
             std::stringstream ss;
-#if 1
-                std::locale lc( locale.c_str() );
-                ss.imbue( lc );
-                ss << std::put_time( &tm, "\"%c\"" );
-#else
-#   ifdef _MSC_VER
-                // msvc crashes on %z and %Z
-                ss << std::put_time( &tm, "\"%Y-%m-%d %H:%M:%S\"" );
-#   else
-                ss << std::put_time( &tm, "\"%Y-%m-%d %H:%M:%S %z\"" );
-#   endif
-#endif
+
+            std::locale lc( locale.c_str() );
+            ss.imbue( lc );
+            ss << std::put_time( &tm, "\"%c\"" );
+
             timef = ss.str();
         }
         catch(...) {
@@ -329,7 +329,7 @@ $windows(
 
             // Finally change microseconds to seconds and place in the seconds value.
             // The modulus picks up the microseconds.
-            tv->tv_sec = (tmpres / 1000000UL);
+            tv->tv_sec = static_cast<long>(tmpres / 1000000UL);
             tv->tv_usec = (tmpres % 1000000UL);
         }
 
@@ -339,8 +339,21 @@ $windows(
                 once = false;
                 _tzset();
             }
-            tz->tz_minuteswest = _timezone / 60;
-            tz->tz_dsttime = _daylight;
+
+            long timezoneSecs = 0;
+            int daylight = 0;
+
+            $windows(
+                _get_timezone(&timezoneSecs);
+                _get_daylight(&daylight);
+            )
+            $welse(
+                timezoneSecs = _timezone;
+                daylight = _daylight;
+            )
+            
+            tz->tz_minuteswest = timezoneSecs / 60;
+            tz->tz_dsttime = daylight;
         }
 
         return 0;
