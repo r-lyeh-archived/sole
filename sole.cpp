@@ -89,6 +89,16 @@
 #   include <sys/time.h>
 #   include <sys/types.h>
 #   define $bsd $yes
+#elif (defined(__APPLE__) && defined(__MACH__))
+#   include <ifaddrs.h>
+#   include <net/if_dl.h>
+#   include <sys/socket.h>
+#   include <sys/time.h>
+#   include <sys/types.h>
+#   include <unistd.h>
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+#   define $osx $yes
 #elif defined(__linux__)
 #   include <arpa/inet.h>
 #   include <net/if.h>
@@ -168,6 +178,13 @@
 #define $uelse   $yes
 #endif
 
+#ifdef  $osx
+#define $oelse   $no
+#else
+#define $osx     $no
+#define $oelse   $yes
+#endif
+
 #define $yes(...) __VA_ARGS__
 #define $no(...)
 
@@ -216,7 +233,8 @@ namespace {
     std::string printftime( uint64_t timestamp_secs = 0, const std::string &locale = std::string() ) {
         std::string timef;
         try {
-            std::string locale; // = "es-ES", "Chinese_China.936", "en_US.UTF8", etc...
+            // Taken from parameter
+            //std::string locale; // = "es-ES", "Chinese_China.936", "en_US.UTF8", etc...
             std::time_t t = timestamp_secs;
             std::tm tm;
             $windows(
@@ -476,6 +494,33 @@ $bsd({
     return true;
 })
 
+$osx({
+    struct ifaddrs* ifaphead;
+    int rc = getifaddrs(&ifaphead);
+    if (rc) return ("cannot get network adapter list"), false;
+
+    bool foundAdapter = false;
+    for (struct ifaddrs* ifap = ifaphead; ifap; ifap = ifap->ifa_next)
+    {
+        if (ifap->ifa_addr && ifap->ifa_addr->sa_family == AF_LINK)
+        {
+            struct sockaddr_dl* sdl = reinterpret_cast<struct sockaddr_dl*>(ifap->ifa_addr);
+            caddr_t ap = (caddr_t) (sdl->sdl_data + sdl->sdl_nlen);
+            int alen = sdl->sdl_alen;
+            if (ap && alen > 0)
+            {
+                _node.resize( alen );
+                std::memcpy(_node.data(), ap, _node.size() );
+                foundAdapter = true;
+                break;
+            }
+        }
+    }
+    freeifaddrs(ifaphead);
+    if (!foundAdapter) return ("cannot determine MAC address (no suitable network adapter found)"), false;
+    return true;
+})
+
 $linux({
     struct ifreq ifr;
 
@@ -664,9 +709,17 @@ uuid rebuild( const std::string &uustr ) {
 #undef $belse
 #undef $linux
 #undef $lelse
+#undef $osx
+#undef $oelse
 #undef $unix
 #undef $uelse
 #undef $windows
 #undef $welse
 #undef $yes
 #undef $no
+
+// Pop disabled warnings
+#if (defined(__APPLE__) && defined(__MACH__))
+#pragma clang diagnostic pop
+#endif
+
