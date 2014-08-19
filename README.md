@@ -4,7 +4,7 @@ sole
 - Sole is a lightweight C++11 library to generate universally unique identificators (UUID).
 - Sole provides interface for UUID both versions 1 and 4. Custom version 0 is additionally provided.
 - Sole rebuilds UUIDs from hexadecimal and base62 cooked strings as well.
-- Sole is cross-platform. Compiles under MSVC/GCC. Works on Windows/Linux.
+- Sole is cross-platform. Compiles under MSVC/GCC/Clang. Works on Windows/Linux/OSX.
 - Sole is tiny. One header and one source file.
 - Sole is MIT licensed.
 
