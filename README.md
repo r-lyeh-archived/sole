@@ -6,7 +6,7 @@ sole
 - Sole rebuilds UUIDs from hexadecimal and base62 cooked strings as well.
 - Sole is cross-platform. Compiles under MSVC/GCC/Clang. Works on Windows/Linux/OSX.
 - Sole is tiny. One header and one source file.
-- Sole is MIT licensed.
+- Sole is BOOST licensed.
 
 ### some theory
 - UUID version 1 (48-bit MAC address + 60-bit clock with a resolution of 100 ns)
