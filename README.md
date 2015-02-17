@@ -1,4 +1,4 @@
-sole
+sole <a href="https://travis-ci.org/r-lyeh/sole"><img src="https://api.travis-ci.org/r-lyeh/sole.svg?branch=master" align="right" /></a>
 ====
 
 - Sole is a lightweight C++11 library to generate universally unique identificators (UUID).
