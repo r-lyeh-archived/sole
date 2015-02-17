@@ -9,4 +9,3 @@ install:
 
 script:
   - wget --quiet -O - https://raw.githubusercontent.com/r-lyeh/depot/master/travis.build.sh | bash -x
-  - wget --quiet -O - https://raw.githubusercontent.com/r-lyeh/depot/master/travis.run.sh   | bash -x

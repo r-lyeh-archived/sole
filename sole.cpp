@@ -75,7 +75,7 @@
 #include <string>
 #include <vector>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 #   include <windows.h>
 #   include <process.h>
 #   include <iphlpapi.h>
@@ -133,8 +133,11 @@
 #   define $unix $yes
 #endif
 
+#ifdef _MSC_VER
+#   define $msvc  $yes
+#endif
 
-#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ <= 40801 )
+#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ <= 40902 )
     namespace std
     {
         static std::string put_time( const std::tm* tmb, const char* fmt ) {
@@ -183,6 +186,13 @@
 #else
 #define $osx     $no
 #define $oelse   $yes
+#endif
+
+#ifdef  $msvc
+#define $melse   $no
+#else
+#define $msvc    $no
+#define $melse   $yes
 #endif
 
 #define $yes(...) __VA_ARGS__
@@ -237,10 +247,10 @@ namespace {
             //std::string locale; // = "es-ES", "Chinese_China.936", "en_US.UTF8", etc...
             std::time_t t = timestamp_secs;
             std::tm tm;
-            $windows(
+            $msvc(
                 localtime_s( &tm, &t );
             )
-            $welse(
+            $melse(
                 localtime_r( &t, &tm );
             )
 
@@ -361,15 +371,15 @@ $windows(
             long timezoneSecs = 0;
             int daylight = 0;
 
-            $windows(
+            $msvc(
                 _get_timezone(&timezoneSecs);
                 _get_daylight(&daylight);
             )
-            $welse(
+            $melse(
                 timezoneSecs = _timezone;
                 daylight = _daylight;
             )
-            
+
             tz->tz_minuteswest = timezoneSecs / 60;
             tz->tz_dsttime = daylight;
         }
