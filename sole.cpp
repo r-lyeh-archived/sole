@@ -229,13 +229,13 @@ namespace {
     }
 
     uint64_t rebase( const std::string &input, const std::string &basemap ) {
-        auto strpos = [](const std::string &chars, char ch ) -> unsigned {
+        auto strpos = [](const std::string &chars, char ch ) -> size_t {
             return chars.find_first_of( ch );
         };
-        unsigned limit = input.size();
-        unsigned size = basemap.size();
+        auto limit = input.size();
+        auto size = basemap.size();
         uint64_t res = strpos( basemap, input[0] );
-        for( unsigned i = 1; i < limit; ++i )
+        for( size_t i = 1; i < limit; ++i )
             res = size * res + strpos( basemap, input[i] );
         return res;
     }
