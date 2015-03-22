@@ -98,3 +98,30 @@ namespace sole
     uuid rebuild( uint64_t ab, uint64_t cd );
     uuid rebuild( const std::string &uustr );
 }
+
+namespace std {
+    template<>
+    class hash<sole::uuid> : public std::unary_function<sole::uuid, size_t> {    // hash functor
+    public:
+        size_t operator()(const sole::uuid& keyval) const {
+            return getHash<size_t>(keyval);
+        }
+
+    private:
+        template<class size_type>
+        size_t getHash(const sole::uuid& keyval) const {
+            return getHash<uint32_t>(keyval);
+        }
+
+        template<>
+        size_t getHash<uint32_t>(const sole::uuid& keyval) const {
+            uint64_t uuidHash = keyval.ab ^ keyval.cd;
+            return static_cast<size_t>(static_cast<uint32_t>(uuidHash >> 32) ^ static_cast<uint32_t>(uuidHash & 0x00000000ffffffff));
+        }
+
+        template<>
+        size_t getHash<uint64_t>(const sole::uuid& keyval) const {
+            return static_cast<size_t>(keyval.ab ^ keyval.cd);
+        }
+    };
+}
