@@ -103,24 +103,18 @@ namespace std {
     template<>
     class hash<sole::uuid> : public std::unary_function<sole::uuid, size_t> {    // hash functor
     public:
+        // hash _Keyval to size_t value by pseudorandomizing transform
         size_t operator()(const sole::uuid& keyval) const {
-            return getHash<size_t>(keyval);
+            return getHash(keyval, size_t());
         }
 
     private:
-        template<class size_type>
-        size_t getHash(const sole::uuid& keyval) const {
-            return getHash<uint32_t>(keyval);
-        }
-
-        template<>
-        size_t getHash<uint32_t>(const sole::uuid& keyval) const {
+        inline size_t getHash(const sole::uuid& keyval, uint32_t) const {
             uint64_t uuidHash = keyval.ab ^ keyval.cd;
             return static_cast<size_t>(static_cast<uint32_t>(uuidHash >> 32) ^ static_cast<uint32_t>(uuidHash & 0x00000000ffffffff));
         }
 
-        template<>
-        size_t getHash<uint64_t>(const sole::uuid& keyval) const {
+        inline size_t getHash(const sole::uuid& keyval, uint64_t) const {
             return static_cast<size_t>(keyval.ab ^ keyval.cd);
         }
     };
