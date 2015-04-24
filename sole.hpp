@@ -89,20 +89,15 @@ namespace sole
 namespace std {
     template<>
     class hash< sole::uuid > : public std::unary_function< sole::uuid, size_t > {
-    public:
+    public: 
         // hash functor: hash uuid to size_t value by pseudorandomizing transform
         size_t operator()( const sole::uuid &uuid ) const {
-            return transform( uuid, size_t() );
-        }
-
-    private:
-        inline size_t transform( const sole::uuid &uuid, uint32_t ) const {
-            uint64_t hash64 = uuid.ab ^ uuid.cd;
-            return size_t( uint32_t( hash64 >> 32 ) ^ uint32_t( hash64 ) );
-        }
-
-        inline size_t transform( const sole::uuid &uuid, uint64_t ) const {
-            return size_t( uuid.ab ^ uuid.cd );
+            if( sizeof(size_t) > 4 ) {
+                return size_t( uuid.ab ^ uuid.cd );
+            } else {
+                uint64_t hash64 = uuid.ab ^ uuid.cd;
+                return size_t( uint32_t( hash64 >> 32 ) ^ uint32_t( hash64 ) );
+            }
         }
     };
 }
