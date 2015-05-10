@@ -1,9 +1,6 @@
 /* Sole is a lightweight C++11 library to generate universally unique identificators.
  * Sole provides interface for UUID versions 1 and 4. Custom v0 is provided additionally.
- * Copyright (c) 2013, Mario 'rlyeh' Rodriguez
- *
- * Distributed under the Boost Software License, Version 1.0.
- * (See license copy at http://www.boost.org/LICENSE_1_0.txt)
+ * Copyright (c) 2013, Mario 'rlyeh' Rodriguez, zlib/libpng licensed.
 
  * Based on code by Dmitri Bouianov, Philip O'Toole, Poco C++ libraries and
  * anonymous code found on the net. Thanks guys!
@@ -48,7 +45,7 @@
 
 #pragma once
 #include <stdio.h>     // for size_t; should be stddef.h instead; however, clang+archlinux fails on compiling it (@Travis-Ci)
-#include <stdint.h>    
+#include <stdint.h>
 #include <functional>
 #include <string>
 
@@ -89,7 +86,7 @@ namespace sole
 namespace std {
     template<>
     class hash< sole::uuid > : public std::unary_function< sole::uuid, size_t > {
-    public: 
+    public:
         // hash functor: hash uuid to size_t value by pseudorandomizing transform
         size_t operator()( const sole::uuid &uuid ) const {
             if( sizeof(size_t) > 4 ) {
