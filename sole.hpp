@@ -132,6 +132,7 @@ namespace std {
 #   include <sys/socket.h>
 #   include <sys/time.h>
 #   include <sys/types.h>
+#   include <unistd.h>
 #   define $bsd $yes
 #elif (defined(__APPLE__) && defined(__MACH__))
 #   include <ifaddrs.h>
