@@ -120,7 +120,13 @@ namespace std {
 #include <vector>
 
 #if defined(_WIN32)
-#   include <windows.h>
+#   ifdef WIN32_LEAN_AND_MEAN
+#       undef WIN32_LEAN_AND_MEAN
+#       include <windows.h>
+#       define WIN32_LEAN_AND_MEAN
+#   else
+#       include <windows.h>
+#   endif
 #   include <process.h>
 #   include <iphlpapi.h>
 #   pragma comment(lib,"iphlpapi.lib")
