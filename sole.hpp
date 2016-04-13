@@ -87,6 +87,11 @@ namespace sole
     uuid rebuild( const std::string &uustr );
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4127)
+#endif
+
 namespace std {
     template<>
     class hash< sole::uuid > : public std::unary_function< sole::uuid, size_t > {
@@ -102,6 +107,10 @@ namespace std {
         }
     };
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 // implementation
 
@@ -120,13 +129,7 @@ namespace std {
 #include <vector>
 
 #if defined(_WIN32)
-#   ifdef WIN32_LEAN_AND_MEAN
-#       undef WIN32_LEAN_AND_MEAN
-#       include <windows.h>
-#       define WIN32_LEAN_AND_MEAN
-#   else
-#       include <windows.h>
-#   endif
+#   include <winsock2.h>
 #   include <process.h>
 #   include <iphlpapi.h>
 #   pragma comment(lib,"iphlpapi.lib")
