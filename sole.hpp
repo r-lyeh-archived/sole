@@ -1,5 +1,7 @@
 /* Sole is a lightweight C++11 library to generate universally unique identificators.
  * Sole provides interface for UUID versions 0, 1 and 4.
+
+ * https://github.com/r-lyeh/sole
  * Copyright (c) 2013,2014,2015 r-lyeh. zlib/libpng licensed.
 
  * Based on code by Dmitri Bouianov, Philip O'Toole, Poco C++ libraries and anonymous
