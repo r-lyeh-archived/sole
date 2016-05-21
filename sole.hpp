@@ -194,7 +194,7 @@ namespace std {
 #   define $msvc  $yes
 #endif
 
-#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ <= 40902 )
+#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 < 50100)
     namespace std
     {
         static inline std::string put_time( const std::tm* tmb, const char* fmt ) {
