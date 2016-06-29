@@ -367,7 +367,7 @@ namespace sole {
     }
 
     inline std::string uuid::base62() const {
-        static const std::string base62 =
+        const char *base62 =
             "0123456789"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyz";
@@ -736,7 +736,7 @@ namespace sole {
         uuid u = { 0, 0 };
         auto idx = uustr.find_first_of("-");
         if( idx != std::string::npos ) {
-            static const std::string base62 =
+            const char *base62 =
                 "0123456789"
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 "abcdefghijklmnopqrstuvwxyz";
