@@ -268,29 +268,6 @@ inline bool sole::uuid::operator<( const sole::uuid &other ) const {
 
 namespace sole {
 
-    inline std::string rebase( uint64_t input, const std::string &basemap ) {
-        uint64_t rem, size = basemap.size();
-        std::string res;
-        do {
-            rem = input % size;
-            res = std::string() + basemap[int(rem)] + res;
-            input /= size;
-        } while (input > 0);
-        return res;
-    }
-
-    inline uint64_t rebase( const std::string &input, const std::string &basemap ) {
-        auto strpos = [](const std::string &chars, char ch ) -> size_t {
-            return chars.find_first_of( ch );
-        };
-        auto limit = input.size();
-        auto size = basemap.size();
-        uint64_t res = strpos( basemap, input[0] );
-        for( size_t i = 1; i < limit; ++i )
-            res = size * res + strpos( basemap, input[i] );
-        return res;
-    }
-
     inline std::string printftime( uint64_t timestamp_secs = 0, const std::string &locale = std::string() ) {
         std::string timef;
         try {
@@ -306,9 +283,10 @@ namespace sole {
             )
 
             std::stringstream ss;
-
+            $melse(
             std::locale lc( locale.c_str() );
             ss.imbue( lc );
+            )
             ss << std::put_time( &tm, "\"%c\"" );
 
             timef = ss.str();
@@ -367,11 +345,25 @@ namespace sole {
     }
 
     inline std::string uuid::base62() const {
-        const char *base62 =
+        int base62len = 10 + 26 + 26;
+        const char base62[] =
             "0123456789"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyz";
-        return rebase( ab, base62 ) + "-" + rebase( cd, base62 );
+        char res[24], *end = &res[24]; *(--end) = '\0';
+        uint64_t rem, AB = ab, CD = cd;
+        do {
+            rem = AB % base62len;
+            *end-- = base62[int(rem)];
+            AB /= base62len;
+        } while (AB > 0);
+        *end-- = '-';
+        do {
+            rem = CD % base62len;
+            *end-- = base62[int(rem)];
+            CD /= base62len;
+        } while (CD > 0);
+        return std::string( end + 1, end + 1 - res ? 22 : 23);
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -736,14 +728,26 @@ namespace sole {
         uuid u = { 0, 0 };
         auto idx = uustr.find_first_of("-");
         if( idx != std::string::npos ) {
-            const char *base62 =
-                "0123456789"
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                "abcdefghijklmnopqrstuvwxyz";
             // single separator, base62 notation
             if( uustr.find_first_of("-",idx+1) == std::string::npos ) {
-                u.ab = rebase( uustr.substr(0,idx), base62 );
-                u.cd = rebase( uustr.substr(idx+1), base62 );
+                auto rebase62 = [&]( const char *input, size_t limit ) -> uint64_t {
+                    int base62len = 10 + 26 + 26;
+                    const char base62[] =
+                        "0123456789"
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        "abcdefghijklmnopqrstuvwxyz";
+                    auto strpos = []( char ch ) -> size_t {
+                        if( ch >= 'a' ) return ch - 'a' + 10 + 26;
+                        if( ch >= 'A' ) return ch - 'A' + 10;
+                        return ch - '0';
+                    };
+                    uint64_t res = strpos( input[0] );
+                    for( size_t i = 1; i < limit; ++i )
+                        res = base62len * res + strpos( input[i] );
+                    return res;
+                };
+                u.ab = rebase62( &uustr[0], idx );
+                u.cd = rebase62( &uustr[idx+1], uustr.size() - (idx+1) );
             }
             // else classic hex notation
             else {
