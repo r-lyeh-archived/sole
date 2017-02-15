@@ -631,8 +631,8 @@ namespace sole {
     // UUID implementations
 
     inline uuid uuid4() {
-        std::random_device rd;
-        std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
+        static std::random_device rd;
+        static std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
         uuid my;
 
