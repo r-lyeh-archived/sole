@@ -135,7 +135,9 @@ namespace std {
 #   include <winsock2.h>
 #   include <process.h>
 #   include <iphlpapi.h>
+#   ifdef _MSC_VER
 #   pragma comment(lib,"iphlpapi.lib")
+#   endif
 #   define $windows $yes
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || \
         defined(__OpenBSD__) || defined(__MINT__) || defined(__bsdi__)
