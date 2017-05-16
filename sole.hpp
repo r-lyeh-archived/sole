@@ -732,10 +732,6 @@ namespace sole {
             if( uustr.find_first_of("-",idx+1) == std::string::npos ) {
                 auto rebase62 = [&]( const char *input, size_t limit ) -> uint64_t {
                     int base62len = 10 + 26 + 26;
-                    const char base62[] =
-                        "0123456789"
-                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                        "abcdefghijklmnopqrstuvwxyz";
                     auto strpos = []( char ch ) -> size_t {
                         if( ch >= 'a' ) return ch - 'a' + 10 + 26;
                         if( ch >= 'A' ) return ch - 'A' + 10;
