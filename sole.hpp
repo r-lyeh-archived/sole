@@ -54,7 +54,8 @@
 
 // public API
 
-#define SOLE_VERSION "1.0.0" // (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings
+#define SOLE_VERSION "1.0.1" /* (2017/05/16): Improve UUID4 and base62 performance; fix warnings
+#define SOLE_VERSION "1.0.0" // (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings */
 
 namespace sole
 {
@@ -353,17 +354,17 @@ namespace sole {
         char res[24], *end = &res[24]; *(--end) = '\0';
         uint64_t rem, AB = ab, CD = cd;
         do {
-            rem = AB % base62len;
-            *end-- = base62[int(rem)];
-            AB /= base62len;
-        } while (AB > 0);
-        *end-- = '-';
-        do {
             rem = CD % base62len;
-            *end-- = base62[int(rem)];
+            *--end = base62[int(rem)];
             CD /= base62len;
         } while (CD > 0);
-        return std::string( end + 1, end + 1 - res ? 22 : 23);
+        *--end = '-';
+        do {
+            rem = AB % base62len;
+            *--end = base62[int(rem)];
+            AB /= base62len;
+        } while (AB > 0);
+        return end;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
