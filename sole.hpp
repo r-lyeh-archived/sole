@@ -824,8 +824,12 @@ using namespace sole;
 
 namespace run
 {
+    auto basetime = std::chrono::system_clock::now();
+    auto basesteady = std::chrono::steady_clock::now();
     auto epoch = [](){
-        return std::chrono::system_clock::to_time_t( std::chrono::system_clock::now() );
+        return std::chrono::system_clock::to_time_t(
+          basetime + (std::chrono::steady_clock::now() - basesteady)
+        );
     };
 
     template<typename FN>
@@ -897,4 +901,3 @@ int main() {
 }
 
 #endif
-
