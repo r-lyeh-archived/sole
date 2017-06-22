@@ -752,8 +752,10 @@ namespace sole {
             else {
                 std::stringstream ss( uustr );
                 if( ss >> std::hex >> a >> sep >> b >> sep >> c >> sep >> d >> sep >> e ) {
-                    u.ab = (a << 32) | (b << 16) | c;
-                    u.cd = (d << 48) | e;
+                    if( ss.eof() ) {
+                        u.ab = (a << 32) | (b << 16) | c;
+                        u.cd = (d << 48) | e;
+                    }
                 }
             }
         }
