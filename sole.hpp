@@ -721,7 +721,7 @@ namespace sole {
 
     inline uuid rebuild( uint64_t ab, uint64_t cd ) {
         uuid u;
-        u.ab = ab, u.cd = cd;
+        u.ab = ab; u.cd = cd;
         return u;
     }
 
