@@ -282,7 +282,8 @@ namespace sole {
                 localtime_s( &tm, &t );
             )
             $melse(
-                localtime_r( &t, &tm );
+                $windows(tm = *localtime( &t ); )
+                $welse( localtime_r(&t, &tm); )
             )
 
             std::stringstream ss;
