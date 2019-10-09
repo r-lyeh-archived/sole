@@ -187,9 +187,6 @@ namespace std {
 #   include <sys/time.h>
 #   include <sys/types.h>
 #   include <unistd.h>
-#   if defined(__VMS)
-        namespace { enum { MAXHOSTNAMELEN = 64 }; }
-#   endif
 #   define $unix $yes
 #endif
 
@@ -591,7 +588,7 @@ namespace sole {
     })
 
     $unix({
-        char name[MAXHOSTNAMELEN];
+        char name[HOST_NAME_MAX];
         if (gethostname(name, sizeof(name)))
             return $no("cannot get host name") false;
 
