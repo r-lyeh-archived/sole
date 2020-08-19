@@ -459,10 +459,10 @@ namespace sole {
 
         // If the clock looks like it went backwards, or is the same, increment it.
         static uint64_t last_uuid_time = 0;
-        if( last_uuid_time > uuid_time )
-            last_uuid_time = uuid_time;
+        if( last_uuid_time >= uuid_time )
+            uuid_time = ++last_uuid_time;
         else
-            last_uuid_time = ++uuid_time;
+            last_uuid_time = uuid_time;
 
         return uuid_time;
     }
