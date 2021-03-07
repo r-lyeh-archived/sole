@@ -903,10 +903,8 @@ int main() {
     run::benchmark(uuid1, "v1");
     run::benchmark(uuid4, "v4");
 
-    sole::uuid uuid = uuid4();
-    run::benchmark([=]() {
-        sole::rebuild( uuid.str() );
-    }, "rebuild");
+    auto uustr = uuid4().str();
+    run::benchmark([=]() { sole::rebuild( uustr ); }, "rebuild");
 
     run::verify(uuid4);             // use fastest implementation
 
