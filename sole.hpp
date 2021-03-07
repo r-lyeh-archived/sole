@@ -726,7 +726,6 @@ namespace sole {
 
     inline uuid rebuild( const std::string &uustr ) {
         char sep;
-        uint64_t a,b,c,d,e;
         uuid u = { 0, 0 };
         auto idx = uustr.find_first_of("-");
         if( idx != std::string::npos ) {
@@ -749,11 +748,25 @@ namespace sole {
             }
             // else classic hex notation
             else {
-                std::stringstream ss( uustr );
-                if( ss >> std::hex >> a >> sep >> b >> sep >> c >> sep >> d >> sep >> e ) {
-                    if( ss.eof() ) {
-                        u.ab = (a << 32) | (b << 16) | c;
-                        u.cd = (d << 48) | e;
+                if (uustr[8] == '-' || uustr[13] == '-' || uustr[18] == '-' || uustr[23] == '-') {
+                    uint64_t ab, cd;
+                    auto decode = []( char ch ) -> size_t {
+                        if( 'f' >= ch && ch >= 'a' ) return ch - 'a' + 10;
+                        if( 'F' >= ch && ch >= 'A' ) return ch - 'A' + 10;
+                        if( '9' >= ch && ch >= '0' ) return ch - '0';
+                        return 0;
+                    };
+                    for( size_t i = 0; i < 18; i++ ) {
+                        if( i == 8 || i == 13 ) {
+                            continue;
+                        }
+                        u.ab = u.ab<<4 | decode(uustr[i]);
+                    }
+                    for( size_t i = 19; i < 36; i++ ) {
+                        if( i == 23 ) {
+                            continue;
+                        }
+                        u.cd = u.cd<<4 | decode(uustr[i]);
                     }
                 }
             }
@@ -889,6 +902,11 @@ int main() {
     run::benchmark(uuid0, "v0");
     run::benchmark(uuid1, "v1");
     run::benchmark(uuid4, "v4");
+
+    sole::uuid uuid = uuid4();
+    run::benchmark([=]() {
+        sole::rebuild( uuid.str() );
+    }, "rebuild");
 
     run::verify(uuid4);             // use fastest implementation
 
