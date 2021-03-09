@@ -327,22 +327,28 @@ namespace sole {
     }
 
     inline std::string uuid::str() const {
-        std::stringstream ss;
-        ss << std::hex << std::nouppercase << std::setfill('0');
+        char uustr[] = "00000000-0000-0000-0000-000000000000";
+        constexpr char encode[] = "0123456789abcdef";
 
-        uint32_t a = (ab >> 32);
-        uint32_t b = (ab & 0xFFFFFFFF);
-        uint32_t c = (cd >> 32);
-        uint32_t d = (cd & 0xFFFFFFFF);
+        size_t bit = 15;
+        for( size_t i = 0; i < 18; i++ ) {
+            if( i == 8 || i == 13 ) {
+                continue;
+            }
+            uustr[i] = encode[ab>>4*bit&0x0f];
+            bit--;
+        }
 
-        ss << std::setw(8) << (a) << '-';
-        ss << std::setw(4) << (b >> 16) << '-';
-        ss << std::setw(4) << (b & 0xFFFF) << '-';
-        ss << std::setw(4) << (c >> 16 ) << '-';
-        ss << std::setw(4) << (c & 0xFFFF);
-        ss << std::setw(8) << d;
+        bit = 15;
+        for( size_t i = 18; i < 36; i++ ) {
+            if( i == 18 || i == 23 ) {
+                continue;
+            }
+            uustr[i] = encode[cd>>4*bit&0x0f];
+            bit--;
+        }
 
-        return ss.str();
+        return std::string(uustr);
     }
 
     inline std::string uuid::base62() const {
@@ -905,6 +911,9 @@ int main() {
 
     auto uustr = uuid4().str();
     run::benchmark([=]() { sole::rebuild( uustr ); }, "rebuild");
+
+    auto uuid = uuid4();
+    run::benchmark([=]() { uuid.str(); }, "str");
 
     run::verify(uuid4);             // use fastest implementation
 
