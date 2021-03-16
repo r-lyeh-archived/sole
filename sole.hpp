@@ -54,7 +54,8 @@
 
 // public API
 
-#define SOLE_VERSION "1.0.1" /* (2017/05/16): Improve UUID4 and base62 performance; fix warnings
+#define SOLE_VERSION "1.0.2" /* (2021/03/16): Merge speed improvements by @vihangm
+#define SOLE_VERSION "1.0.1" // (2017/05/16): Improve UUID4 and base62 performance; fix warnings
 #define SOLE_VERSION "1.0.0" // (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings */
 
 namespace sole
