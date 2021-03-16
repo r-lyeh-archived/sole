@@ -725,7 +725,6 @@ namespace sole {
     }
 
     inline uuid rebuild( const std::string &uustr ) {
-        char sep;
         uuid u = { 0, 0 };
         auto idx = uustr.find_first_of("-");
         if( idx != std::string::npos ) {
@@ -749,7 +748,6 @@ namespace sole {
             // else classic hex notation
             else {
                 if (uustr[8] == '-' || uustr[13] == '-' || uustr[18] == '-' || uustr[23] == '-') {
-                    uint64_t ab, cd;
                     auto decode = []( char ch ) -> size_t {
                         if( 'f' >= ch && ch >= 'a' ) return ch - 'a' + 10;
                         if( 'F' >= ch && ch >= 'A' ) return ch - 'A' + 10;
