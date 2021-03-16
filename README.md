@@ -73,5 +73,6 @@ uuid v4 rebuilt : bdd55e2f-6f6b-4088-8703-ddedba9456a2 -> version=4,randbits=bdd
 - clang/g++ users: both `-std=c++11` and `-lrt` may be required when compiling `sole.cpp`
 
 ### Changelog
+- v1.0.2 (2021/03/16): Merge speed improvements by @vihangm
 - v1.0.1 (2017/05/16): Improve UUID4 and base62 performance; Fix warnings
 - v1.0.0 (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings
