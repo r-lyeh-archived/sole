@@ -170,6 +170,9 @@ namespace std {
 #   include <unistd.h>
 #   define $linux $yes
 #else //elif defined(__unix__)
+#	if defined(__EMSCRIPTEN__)
+#		define $emscripten $yes
+#	endif
 #   if defined(__VMS)
 #      include <ioctl.h>
 #      include <inet.h>
@@ -249,6 +252,12 @@ namespace std {
 #else
 #define $msvc    $no
 #define $melse   $yes
+#endif
+
+#ifdef $emscripten
+#define $emselse	$no
+#else
+#define $emselse	$yes
 #endif
 
 #define $yes(...) __VA_ARGS__
@@ -439,7 +448,7 @@ namespace sole {
             return 0;
         }
     )
-    $lelse( $belse( // if not linux, if not bsd... valid for apple/win32
+    $lelse( $belse( $emselse ( // if not linux, if not bsd, if not emscripten... valid for apple/win32
         inline int clock_gettime( int /*clk_id*/, struct timespec* t ) {
             struct timeval now;
             int rv = gettimeofday(&now, NULL);
@@ -448,7 +457,7 @@ namespace sole {
             t->tv_nsec = now.tv_usec * 1000;
             return 0;
         }
-    ))
+    )))
 
     //////////////////////////////////////////////////////////////////////////////////////
     // Timestamp and MAC interfaces
