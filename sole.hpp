@@ -134,7 +134,7 @@ namespace std {
 #include <vector>
 
 #if defined(_WIN32)
-#   include <winsock2.h>
+#   include <windows.h>
 #   include <process.h>
 #   include <iphlpapi.h>
 #   ifdef _MSC_VER
