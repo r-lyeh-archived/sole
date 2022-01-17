@@ -162,6 +162,7 @@ namespace std {
 #   define $osx $yes
 #elif defined(__linux__)
 #   include <arpa/inet.h>
+#   include <ifaddrs.h>
 #   include <net/if.h>
 #   include <netinet/in.h>
 #   include <sys/ioctl.h>
@@ -589,19 +590,32 @@ namespace sole {
     })
 
     $linux({
-        struct ifreq ifr;
+        struct ifaddrs* ifaphead;
+        if (getifaddrs(&ifaphead) == -1) return $no("cannot get network adapter list") false;
 
-        int s = socket(PF_INET, SOCK_DGRAM, 0);
-        if (s == -1) return $no("cannot open socket") false;
+        bool foundAdapter = false;
+        for (struct ifaddrs* ifap = ifaphead; ifap; ifap = ifap->ifa_next)
+        {
+            struct ifreq ifr;
+            int s = socket(PF_INET, SOCK_DGRAM, 0);
+            if (s == -1) continue;
 
-        std::strcpy(ifr.ifr_name, "eth0");
-        int rc = ioctl(s, SIOCGIFHWADDR, &ifr);
-        close(s);
-        if (rc < 0) return $no("cannot get MAC address") false;
-        struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&ifr.ifr_addr);
-        _node.resize( sizeof(sa->sa_data) );
-        std::memcpy(_node.data(), sa->sa_data, _node.size() );
+            if (std::strcmp("lo", ifap->ifa_name) == 0) continue; // loopback address is zero
+
+            std::strcpy(ifr.ifr_name, ifap->ifa_name);
+            int rc = ioctl(s, SIOCGIFHWADDR, &ifr);
+            close(s);
+            if (rc < 0) continue;
+            struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&ifr.ifr_addr);
+            _node.resize( sizeof(sa->sa_data) );
+            std::memcpy(_node.data(), sa->sa_data, _node.size() );
+            foundAdapter = true;
+            break;
+        }
+        freeifaddrs(ifaphead);
+        if (!foundAdapter) return $no("cannot determine MAC address (no suitable network adapter found)") false;
         return true;
+
     })
 
     $unix({
