@@ -475,7 +475,7 @@ namespace sole {
         uuid_time = uuid_time + (tp.tv_nsec / 100);
 
         // If the clock looks like it went backwards, or is the same, increment it.
-        static $msvc( __declspec(thread)) $melse( __thread ) uint64_t last_uuid_time = 0;
+        static uint64_t last_uuid_time = 0;
         if( last_uuid_time >= uuid_time )
             uuid_time = ++last_uuid_time;
         else
