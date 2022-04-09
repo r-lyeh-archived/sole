@@ -1,4 +1,4 @@
-sole <a href="https://travis-ci.org/r-lyeh/sole"><img src="https://api.travis-ci.org/r-lyeh/sole.svg?branch=master" align="right" /></a>
+sole <a href="https://travis-ci.org/r-lyeh/sole"><img src="https://api.travis-ci.org/r-lyeh-archived/sole.svg?branch=master" align="right" /></a>
 ====
 
 - Sole is a lightweight C++11 library to generate universally unique identificators (UUID).
@@ -73,6 +73,7 @@ uuid v4 rebuilt : bdd55e2f-6f6b-4088-8703-ddedba9456a2 -> version=4,randbits=bdd
 - clang/g++ users: both `-std=c++11` and `-lrt` may be required when compiling `sole.cpp`
 
 ### Changelog
+- v1.0.4 (2022/04/09): Fix potential threaded issues (fix #18, PR #39) and a socket leak (fix #38)
 - v1.0.3 (2022/01/17): Merge fixes by @jasonwinterpixel(emscripten) + @jj-tetraquark(get_any_mac)
 - v1.0.2 (2021/03/16): Merge speed improvements by @vihangm
 - v1.0.1 (2017/05/16): Improve UUID4 and base62 performance; Fix warnings
