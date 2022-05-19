@@ -665,8 +665,8 @@ namespace sole {
     // UUID implementations
 
     inline uuid uuid4() {
-        static $msvc(__declspec(thread)) $melse(__thread) std::random_device rd;
-        static $msvc(__declspec(thread)) $melse(__thread) std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
+        static $msvc(__declspec(thread)) $melse(thread_local) std::random_device rd;
+        static $msvc(__declspec(thread)) $melse(thread_local) std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
         uuid my;
 
