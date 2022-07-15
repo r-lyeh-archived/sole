@@ -54,7 +54,8 @@
 
 // public API
 
-#define SOLE_VERSION "1.0.4" /* (2022/04/09): Fix potential threaded issues (fix #18, PR #39) and a socket leak (fix #38)
+#define SOLE_VERSION "1.0.5" /* (2022/07/15): Fix #42 (clang: __thread vs threadlocal)
+#define SOLE_VERSION "1.0.4" // (2022/04/09): Fix potential threaded issues (fix #18, PR #39) and a socket leak (fix #38)
 #define SOLE_VERSION "1.0.3" // (2022/01/17): Merge fixes by @jasonwinterpixel(emscripten) + @jj-tetraquark(get_any_mac)
 #define SOLE_VERSION "1.0.2" // (2021/03/16): Merge speed improvements by @vihangm
 #define SOLE_VERSION "1.0.1" // (2017/05/16): Improve UUID4 and base62 performance; fix warnings
@@ -199,6 +200,14 @@ namespace std {
 
 #ifdef _MSC_VER
 #   define $msvc  $yes
+#endif
+
+#ifdef _MSC_VER
+#   define $thread __declspec(thread)
+#elif defined __clang__
+#   define $thread thread_local
+#else
+#   define $thread __thread
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 < 50100)
@@ -665,8 +674,8 @@ namespace sole {
     // UUID implementations
 
     inline uuid uuid4() {
-        static $msvc(__declspec(thread)) $melse(__thread) std::random_device rd;
-        static $msvc(__declspec(thread)) $melse(__thread) std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
+        static $thread std::random_device rd;
+        static $thread std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
         uuid my;
 
